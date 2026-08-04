@@ -45,7 +45,7 @@ class RealTelegramClient:
         if self.client is None:
             self.client = TelethonClient(self.session_path, self.api_id, self.api_hash)
 
-        if not await self.client.is_connected():
+        if not self.client.is_connected():
             await self.client.connect()
 
         if not await self.client.is_user_authorized():
@@ -65,7 +65,7 @@ class RealTelegramClient:
             if self.client is None:
                 self.client = TelethonClient(self.session_path, self.api_id, self.api_hash)
                 
-            if not await self.client.is_connected():
+            if not self.client.is_connected():
                 await self.client.connect()
                 
             result = await self.client.send_code_request(self.phone)
@@ -79,7 +79,7 @@ class RealTelegramClient:
             return {"status": "error", "message": "Client not connected. Request code first."}
             
         try:
-            if not await self.client.is_connected():
+            if not self.client.is_connected():
                 await self.client.connect()
                 
             await self.client.sign_in(self.phone, code)
