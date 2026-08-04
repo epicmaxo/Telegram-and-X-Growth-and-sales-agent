@@ -92,25 +92,32 @@ class RealTelegramClient:
         from telethon.tl.functions.channels import JoinChannelRequest
         
         try:
-            # Search for groups
-            result = await self.client(SearchRequest(q=query, limit=limit))
             joined = []
             failed = []
             found = []
             
-            for chat in result.chats:
-                found.append({"id": getattr(chat, 'id', None), "title": getattr(chat, 'title', None), "type": type(chat).__name__})
-                if getattr(chat, 'megagroup', False) or getattr(chat, 'broadcast', False) or type(chat).__name__ == "Channel":
-                    try:
-                        await self.client(JoinChannelRequest(chat))
-                        joined.append({"id": chat.id, "title": chat.title, "username": getattr(chat, 'username', None)})
-                    except Exception as e:
-                        failed.append({"title": getattr(chat, 'title', 'Unknown'), "error": str(e)})
+            # Telegram's API doesn't support long sentence searches.
+            # We must split the query into individual keywords and search them one by one.
+            keywords = [k.strip() for k in query.split() if k.strip()]
+            if not keywords:
+                keywords = ["tech"]
+
+            for keyword in keywords:
+                result = await self.client(SearchRequest(q=keyword, limit=limit))
+                
+                for chat in result.chats:
+                    found.append({"id": getattr(chat, 'id', None), "title": getattr(chat, 'title', None), "type": type(chat).__name__})
+                    if getattr(chat, 'megagroup', False) or getattr(chat, 'broadcast', False) or type(chat).__name__ == "Channel":
+                        try:
+                            await self.client(JoinChannelRequest(chat))
+                            joined.append({"id": chat.id, "title": chat.title, "username": getattr(chat, 'username', None)})
+                        except Exception as e:
+                            failed.append({"title": getattr(chat, 'title', 'Unknown'), "error": str(e)})
                         
             return {
                 "status": "success", 
                 "query": query, 
-                "found_chats_count": len(result.chats),
+                "found_chats_count": len(found),
                 "found_chats_debug": found,
                 "joined_groups": joined,
                 "failed_joins": failed
