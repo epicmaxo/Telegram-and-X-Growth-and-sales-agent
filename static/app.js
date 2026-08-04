@@ -1,5 +1,58 @@
 const API_BASE = window.location.origin;
 
+// Override fetch to include password header
+const originalFetch = window.fetch;
+window.fetch = async function() {
+    let [resource, config] = arguments;
+    // For relative URLs, prepend API_BASE just for checking, though usually fetch is used with full URL in this app
+    const urlStr = (typeof resource === 'string') ? resource : resource.url;
+    if (!urlStr || urlStr.indexOf('/static/') === -1) {
+        config = config || {};
+        config.headers = config.headers || {};
+        config.headers['X-Admin-Password'] = localStorage.getItem('admin_password') || '';
+    }
+    const response = await originalFetch(resource, config);
+    if (response.status === 401) {
+        document.getElementById('login-overlay').style.display = 'flex';
+    }
+    return response;
+};
+
+async function submitAdminPassword() {
+    const password = document.getElementById('admin-password').value;
+    localStorage.setItem('admin_password', password);
+    
+    const btn = document.getElementById('btn-admin-login');
+    const msg = document.getElementById('admin-login-message');
+    btn.disabled = true;
+    
+    try {
+        const res = await originalFetch(`${API_BASE}/telegram/status`, {
+            headers: { 'X-Admin-Password': password }
+        });
+        if (res.status === 200) {
+            document.getElementById('login-overlay').style.display = 'none';
+            msg.innerText = '';
+            checkStatus();
+        } else {
+            msg.className = 'message error';
+            msg.innerText = 'Incorrect password.';
+        }
+    } catch (e) {
+        msg.className = 'message error';
+        msg.innerText = 'Network error.';
+    }
+    btn.disabled = false;
+}
+
+// Initial check
+if (!localStorage.getItem('admin_password')) {
+    document.getElementById('login-overlay').style.display = 'flex';
+} else {
+    document.getElementById('login-overlay').style.display = 'none';
+}
+
+
 function addLog(message, type = 'info') {
     const logs = document.getElementById('logs');
     const time = new Date().toLocaleTimeString();

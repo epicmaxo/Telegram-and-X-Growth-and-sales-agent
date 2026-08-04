@@ -1,7 +1,13 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
+import os
 
-router = APIRouter(prefix="/telegram", tags=["telegram"])
+def verify_admin(x_admin_password: str = Header(default="")):
+    expected = os.getenv("ADMIN_PASSWORD", "Mrnaijad")
+    if x_admin_password != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+router = APIRouter(prefix="/telegram", tags=["telegram"], dependencies=[Depends(verify_admin)])
 
 class LoginRequest(BaseModel):
     code: str

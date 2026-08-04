@@ -20,6 +20,19 @@
         </header>
 
         <main>
+            <!-- Login Overlay -->
+            <div id="login-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 9999;">
+                <div class="card" style="width: 300px; text-align: center;">
+                    <h2>Authentication Required</h2>
+                    <p>Please enter your password to access the dashboard.</p>
+                    <div class="input-group" style="margin-top: 20px;">
+                        <input type="password" id="admin-password" placeholder="Password" autocomplete="off" style="margin-bottom: 10px;">
+                        <button class="btn primary glow" id="btn-admin-login" onclick="submitAdminPassword()">Unlock</button>
+                    </div>
+                    <div id="admin-login-message" class="message" style="margin-top: 10px;"></div>
+                </div>
+            </div>
+
             <!-- Auth Section -->
             <section class="card" id="auth-section">
                 <h2>Telegram Connection</h2>

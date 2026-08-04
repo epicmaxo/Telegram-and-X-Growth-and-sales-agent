@@ -29,6 +29,18 @@ def serve_dashboard():
 app.include_router(telegram_router)
 app.include_router(auth_router)
 
+from fastapi import APIRouter, Depends, HTTPException, Header
+import os
+
+def verify_admin(x_admin_password: str = Header(default="")):
+    expected = os.getenv("ADMIN_PASSWORD", "Mrnaijad")
+    if x_admin_password != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+api_router = APIRouter(dependencies=[Depends(verify_admin)])
+
+app.include_router(api_router)
+
 settings = Settings()
 database_service = DatabaseService()
 
@@ -62,7 +74,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/opportunities")
+@api_router.get("/opportunities")
 def list_opportunities() -> list[dict[str, object]]:
     return [
         {
@@ -78,7 +90,7 @@ def list_opportunities() -> list[dict[str, object]]:
     ]
 
 
-@app.post("/conversations/{conversation_id}/analyze")
+@api_router.post("/conversations/{conversation_id}/analyze")
 def analyze_conversation(conversation_id: str, message: str) -> dict[str, object]:
     analysis = conversation_service.analyze_message(message)
     database_service.create_conversation(conversation_id=conversation_id, state={
@@ -102,7 +114,7 @@ def analyze_conversation(conversation_id: str, message: str) -> dict[str, object
     }
 
 
-@app.post("/conversations/{conversation_id}/draft")
+@api_router.post("/conversations/{conversation_id}/draft")
 def draft_response(conversation_id: str, message: str, stage: str) -> dict[str, object]:
     draft = conversation_service.draft_response(message, stage=stage)
     return {
@@ -111,7 +123,7 @@ def draft_response(conversation_id: str, message: str, stage: str) -> dict[str, 
     }
 
 
-@app.post("/conversations/{conversation_id}/outcome")
+@api_router.post("/conversations/{conversation_id}/outcome")
 def record_outcome(conversation_id: str, message: str, stage: str) -> dict[str, object]:
     evaluation = evaluation_service.evaluate(message, stage)
     return {
@@ -125,7 +137,7 @@ def record_outcome(conversation_id: str, message: str, stage: str) -> dict[str, 
     }
 
 
-@app.post("/conversations/{conversation_id}/feedback")
+@api_router.post("/conversations/{conversation_id}/feedback")
 def record_feedback(conversation_id: str, feedback: str) -> dict[str, object]:
     result = feedback_service.evaluate(feedback)
     person_memory_service.remember(conversation_id, {"feedback": feedback, "feedback_result": result.summary})
@@ -137,19 +149,19 @@ def record_feedback(conversation_id: str, feedback: str) -> dict[str, object]:
     }
 
 
-@app.get("/people/{conversation_id}/memory")
+@api_router.get("/people/{conversation_id}/memory")
 def get_person_memory(conversation_id: str) -> dict[str, object]:
     return {"conversation_id": conversation_id, "memory": person_memory_service.get_memory(conversation_id)}
 
 
-@app.get("/telegram/status")
+@api_router.get("/telegram/status")
 def telegram_status() -> dict[str, object]:
     status = telegram_client.get_status()
     status["real_client"] = real_telegram_client.get_status()
     return status
 
 
-@app.post("/telegram/connect")
+@api_router.post("/telegram/connect")
 async def telegram_connect() -> dict[str, object]:
     result = await real_telegram_client.connect()
     if result.get("status") in {"connected", "ready", "sent"}:
@@ -159,23 +171,23 @@ async def telegram_connect() -> dict[str, object]:
     return result
 
 
-@app.post("/automation/start")
+@api_router.post("/automation/start")
 def start_automation(audience: str = "global learners") -> dict[str, object]:
     automation_controller.mark_channel_activity("telegram", activity="start")
     return outreach_service.start_daily_cycle(audience=audience)
 
 
-@app.get("/automation/status")
+@api_router.get("/automation/status")
 def automation_status() -> dict[str, object]:
     return automation_controller.get_status()
 
 
-@app.post("/automation/tick")
+@api_router.post("/automation/tick")
 def automation_tick() -> dict[str, object]:
     return automation_controller.tick()
 
 
-@app.post("/telegram/messages/send")
+@api_router.post("/telegram/messages/send")
 async def send_telegram_message(chat_id: str, message: str, user_id: str | None = None) -> dict[str, object]:
     guard = outreach_service.dispatch_activity("reply")
     if guard.get("status") != "queued":
@@ -188,34 +200,34 @@ async def send_telegram_message(chat_id: str, message: str, user_id: str | None 
     return await real_telegram_client.send_message(chat_id=chat_id, message=message)
 
 
-@app.get("/telegram/chats/{chat_id}/history")
+@api_router.get("/telegram/chats/{chat_id}/history")
 async def get_chat_history(chat_id: str, limit: int = 20) -> dict[str, object]:
     return await real_telegram_client.get_chat_history(chat_id=chat_id, limit=limit)
 
 
-@app.get("/telegram/groups/search")
+@api_router.get("/telegram/groups/search")
 async def search_and_join_groups(query: str = "tech startup programming developer software", limit: int = 5) -> dict[str, object]:
     """Search for public groups/channels related to tech and automatically join them."""
     return await real_telegram_client.search_and_join_groups(query=query, limit=limit)
 
 
-@app.get("/telegram/groups/{chat_id}/active-users")
+@api_router.get("/telegram/groups/{chat_id}/active-users")
 async def get_active_users(chat_id: str, limit: int = 100) -> dict[str, object]:
     """Extract users who have sent messages recently in a group."""
     return await real_telegram_client.extract_active_users(chat_id=chat_id, limit=limit)
 
 
-@app.get("/social/x/status")
+@api_router.get("/social/x/status")
 def x_status() -> dict[str, object]:
     return x_client.get_status()
 
 
-@app.get("/social/x/profile")
+@api_router.get("/social/x/profile")
 def x_profile(topic: str = "learning a new skill") -> dict[str, object]:
     return x_client.get_profile_snapshot(topic=topic)
 
 
-@app.post("/social/x/post")
+@api_router.post("/social/x/post")
 async def post_to_x(text: str, user_id: str | None = None) -> dict[str, object]:
     guard = outreach_service.dispatch_activity("direct")
     if guard.get("status") != "queued":
@@ -228,7 +240,7 @@ async def post_to_x(text: str, user_id: str | None = None) -> dict[str, object]:
     return await x_client.post_tweet(text=text)
 
 
-@app.post("/social/x/reply")
+@api_router.post("/social/x/reply")
 async def reply_to_x(post_id: str, text: str, user_id: str | None = None) -> dict[str, object]:
     guard = outreach_service.dispatch_activity("reply")
     if guard.get("status") != "queued":
@@ -241,18 +253,18 @@ async def reply_to_x(post_id: str, text: str, user_id: str | None = None) -> dic
     return await x_client.reply_to_post(post_id=post_id, text=text)
 
 
-@app.post("/social/assets/download")
+@api_router.post("/social/assets/download")
 def download_assets() -> dict[str, object]:
     return asset_manager.download_mentrast_assets()
 
 
-@app.post("/relationship/reply")
+@api_router.post("/relationship/reply")
 def relationship_reply(user_id: str, message: str) -> dict[str, object]:
     reply = relationship_manager.build_persona_reply(user_id, message)
     return {"user_id": user_id, "reply": reply, "status": "ok"}
 
 
-@app.post("/outreach/run")
+@api_router.post("/outreach/run")
 async def run_outreach(leads: list[dict[str, object]], dry_run: bool = False) -> dict[str, object]:
     result = outreach_service.run_batch(leads=leads, dry_run=dry_run)
     if dry_run or not result["queued_messages"]:
