@@ -61,28 +61,31 @@ class RealTelegramClient:
             if not self.phone: missing.append("TELEGRAM_PHONE")
             return {"status": "error", "message": f"Missing credentials in Render: {', '.join(missing)}"}
             
-        if self.client is None:
-            self.client = TelethonClient(self.session_path, self.api_id, self.api_hash)
-            
-        if not await self.client.is_connected():
-            await self.client.connect()
-            
         try:
+            if self.client is None:
+                self.client = TelethonClient(self.session_path, self.api_id, self.api_hash)
+                
+            if not await self.client.is_connected():
+                await self.client.connect()
+                
             result = await self.client.send_code_request(self.phone)
             self.phone_code_hash = result.phone_code_hash
             return {"status": "code_sent", "phone_code_hash": self.phone_code_hash}
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {"status": "error", "message": f"Telegram Error: {str(e)}"}
 
     async def sign_in(self, code: str) -> dict[str, Any]:
-        if not self.client or not await self.client.is_connected():
+        if not self.client:
             return {"status": "error", "message": "Client not connected. Request code first."}
             
         try:
+            if not await self.client.is_connected():
+                await self.client.connect()
+                
             await self.client.sign_in(self.phone, code)
             return {"status": "connected", "message": "Successfully signed in"}
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {"status": "error", "message": f"Telegram Error: {str(e)}"}
 
     async def search_and_join_groups(self, query: str, limit: int = 5) -> dict[str, Any]:
         connect_status = await self.connect()
