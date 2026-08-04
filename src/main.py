@@ -64,6 +64,7 @@ real_telegram_client = RealTelegramClient(
     api_id=settings.telegram_api_id,
     api_hash=settings.telegram_api_hash,
     phone=settings.telegram_phone,
+    database_service=database_service
 )
 x_client = XClient()
 asset_manager = AssetManager()

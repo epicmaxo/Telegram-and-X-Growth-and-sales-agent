@@ -8,13 +8,22 @@ from telethon import TelegramClient as TelethonClient
 from telethon.sessions import StringSession
 
 class RealTelegramClient:
-    def __init__(self, api_id: str | None = None, api_hash: str | None = None, phone: str | None = None, session_path: str | None = None) -> None:
+    def __init__(self, api_id: str | None = None, api_hash: str | None = None, phone: str | None = None, session_path: str | None = None, database_service: Any = None) -> None:
         self.api_id = int(api_id) if api_id and api_id.isdigit() else None
         self.api_hash = api_hash
         self.phone = phone
-        self.session_string = os.getenv("TELEGRAM_SESSION_STRING")
-            
+        self.database_service = database_service
         self.client: TelethonClient | None = None
+
+    def _load_session_string(self) -> str | None:
+        if self.database_service:
+            try:
+                user = self.database_service.get_admin_user()
+                if user.telegram_session_string:
+                    return user.telegram_session_string
+            except Exception:
+                pass
+        return os.getenv("TELEGRAM_SESSION_STRING")
 
     def is_configured(self) -> bool:
         return bool(self.api_id and self.api_hash and self.phone)
@@ -23,7 +32,7 @@ class RealTelegramClient:
         return {
             "configured": self.is_configured(),
             "mode": "user-account",
-            "session_string_present": bool(self.session_string),
+            "session_string_present": bool(self._load_session_string()),
             "api_id_present": bool(self.api_id),
             "api_hash_present": bool(self.api_hash),
             "phone_present": bool(self.phone),
@@ -38,7 +47,7 @@ class RealTelegramClient:
             return {"status": "error", "message": f"Missing credentials in Render: {', '.join(missing)}"}
 
         if self.client is None:
-            self.client = TelethonClient(StringSession(self.session_string or ""), self.api_id, self.api_hash)
+            self.client = TelethonClient(StringSession(self._load_session_string() or ""), self.api_id, self.api_hash)
 
         if not self.client.is_connected():
             await self.client.connect()
@@ -58,7 +67,7 @@ class RealTelegramClient:
             
         try:
             if self.client is None:
-                self.client = TelethonClient(StringSession(self.session_string or ""), self.api_id, self.api_hash)
+                self.client = TelethonClient(StringSession(self._load_session_string() or ""), self.api_id, self.api_hash)
                 
             if not self.client.is_connected():
                 await self.client.connect()
@@ -79,6 +88,11 @@ class RealTelegramClient:
                 
             await self.client.sign_in(self.phone, code)
             new_session_string = self.client.session.save()
+            if self.database_service:
+                try:
+                    self.database_service.update_telegram_session(new_session_string)
+                except Exception:
+                    pass
             return {"status": "connected", "message": "Successfully signed in", "session_string": new_session_string}
         except Exception as e:
             return {"status": "error", "message": f"Telegram Error: {str(e)}"}

@@ -10,6 +10,16 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 
+class UserRecord(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(255), unique=True, nullable=False, default="admin")
+    telegram_session_string = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), default=func.now())
+
+
 class ConversationRecord(Base):
     __tablename__ = "conversations"
 
@@ -41,3 +51,22 @@ class DatabaseService:
     def get_conversation(self, conversation_id: str) -> ConversationRecord | None:
         with self.SessionLocal() as session:
             return session.query(ConversationRecord).filter(ConversationRecord.conversation_id == conversation_id).first()
+
+    def get_admin_user(self) -> UserRecord:
+        with self.SessionLocal() as session:
+            user = session.query(UserRecord).filter(UserRecord.username == "admin").first()
+            if not user:
+                user = UserRecord(username="admin")
+                session.add(user)
+                session.commit()
+                session.refresh(user)
+            return user
+
+    def update_telegram_session(self, session_string: str) -> None:
+        with self.SessionLocal() as session:
+            user = session.query(UserRecord).filter(UserRecord.username == "admin").first()
+            if not user:
+                user = UserRecord(username="admin")
+                session.add(user)
+            user.telegram_session_string = session_string
+            session.commit()
