@@ -103,6 +103,14 @@ async function submitLoginCode() {
         
         if (data.status === 'connected') {
             addLog('Successfully logged into Telegram account!', 'success');
+            if (data.session_string) {
+                addLog('=================================', 'info');
+                addLog('IMPORTANT! COPY THIS STRING:', 'error');
+                addLog(data.session_string, 'info');
+                addLog('Add it to Render as TELEGRAM_SESSION_STRING so you never have to log in again.', 'error');
+                addLog('=================================', 'info');
+                alert("Login successful! Please check the Live Logs at the bottom of the page to copy your Session String.");
+            }
             unlockBotControls();
         } else {
             msg.className = 'message error';

@@ -5,19 +5,14 @@ from typing import Any
 import asyncio
 
 from telethon import TelegramClient as TelethonClient
-
+from telethon.sessions import StringSession
 
 class RealTelegramClient:
     def __init__(self, api_id: str | None = None, api_hash: str | None = None, phone: str | None = None, session_path: str | None = None) -> None:
         self.api_id = int(api_id) if api_id and api_id.isdigit() else None
         self.api_hash = api_hash
         self.phone = phone
-        self.session_path = session_path or os.getenv("TELEGRAM_SESSION_PATH", "./sessions/telegram_account")
-        
-        # Ensure the parent directory exists to prevent SQLite OperationalError
-        parent_dir = os.path.dirname(self.session_path)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
+        self.session_string = os.getenv("TELEGRAM_SESSION_STRING")
             
         self.client: TelethonClient | None = None
 
@@ -43,7 +38,7 @@ class RealTelegramClient:
             return {"status": "error", "message": f"Missing credentials in Render: {', '.join(missing)}"}
 
         if self.client is None:
-            self.client = TelethonClient(self.session_path, self.api_id, self.api_hash)
+            self.client = TelethonClient(StringSession(self.session_string or ""), self.api_id, self.api_hash)
 
         if not self.client.is_connected():
             await self.client.connect()
@@ -63,7 +58,7 @@ class RealTelegramClient:
             
         try:
             if self.client is None:
-                self.client = TelethonClient(self.session_path, self.api_id, self.api_hash)
+                self.client = TelethonClient(StringSession(self.session_string or ""), self.api_id, self.api_hash)
                 
             if not self.client.is_connected():
                 await self.client.connect()
@@ -83,7 +78,8 @@ class RealTelegramClient:
                 await self.client.connect()
                 
             await self.client.sign_in(self.phone, code)
-            return {"status": "connected", "message": "Successfully signed in"}
+            new_session_string = self.client.session.save()
+            return {"status": "connected", "message": "Successfully signed in", "session_string": new_session_string}
         except Exception as e:
             return {"status": "error", "message": f"Telegram Error: {str(e)}"}
 
