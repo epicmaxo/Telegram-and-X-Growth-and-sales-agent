@@ -55,7 +55,41 @@ class RealTelegramClient:
         if not await self.client.is_user_authorized():
             return {"status": "not_authorized", "message": "Session exists but is not authorized to a Telegram user."}
 
+        self._register_message_handler()
+
         return {"status": "connected", "message": "Telegram account is connected."}
+
+    def _register_message_handler(self):
+        from telethon import events
+        
+        if getattr(self, '_handler_registered', False):
+            return
+            
+        @self.client.on(events.NewMessage(incoming=True))
+        async def handle_new_message(event):
+            if event.is_private:
+                from src.main import conversation_service, relationship_manager
+                user = await event.get_sender()
+                if not user or getattr(user, 'bot', False):
+                    return
+                    
+                user_id = str(user.id)
+                # Only auto-reply to users we have previously tracked in our leads DB
+                if user_id not in relationship_manager.relationships:
+                    return
+                    
+                if not relationship_manager.should_engage(user_id):
+                    return
+                
+                relationship_manager.record_interaction(user_id, channel="telegram", outcome="active", message=event.raw_text)
+                analysis = conversation_service.analyze_message(event.raw_text)
+                reply = conversation_service.draft_response(event.raw_text, stage=analysis.conversation_stage)
+                
+                if reply:
+                    await self.client.send_message(user_id, reply)
+                    relationship_manager.record_interaction(user_id, channel="telegram", outcome="active", message=reply)
+
+        self._handler_registered = True
 
     async def send_code_request(self) -> dict[str, Any]:
         if not self.is_configured():
@@ -120,8 +154,20 @@ class RealTelegramClient:
                 result = await self.client(SearchRequest(q=keyword, limit=limit))
                 
                 for chat in result.chats:
-                    found.append({"id": getattr(chat, 'id', None), "title": getattr(chat, 'title', None), "type": type(chat).__name__})
-                    if (getattr(chat, 'megagroup', False) or type(chat).__name__ == "Chat") and not getattr(chat, 'broadcast', False):
+                    is_megagroup = getattr(chat, 'megagroup', False)
+                    is_broadcast = getattr(chat, 'broadcast', False)
+                    
+                    found.append({
+                        "id": getattr(chat, 'id', None), 
+                        "title": getattr(chat, 'title', None), 
+                        "type": type(chat).__name__,
+                        "megagroup": is_megagroup,
+                        "broadcast": is_broadcast
+                    })
+                    
+                    # Strictly ONLY join supergroups (megagroups). Basic chats cannot be joined via Search,
+                    # and we must explicitly avoid broadcast channels.
+                    if is_megagroup and not is_broadcast:
                         try:
                             await self.client(JoinChannelRequest(chat))
                             joined.append({"id": chat.id, "title": chat.title, "username": getattr(chat, 'username', None)})
@@ -150,9 +196,19 @@ class RealTelegramClient:
             messages = await self.client.get_messages(target_chat, limit=limit)
             active_users = {}
             
+            from telethon.tl.types import UserStatusOnline, UserStatusRecently
+            
             for msg in messages:
                 if msg.sender_id and not getattr(msg.sender, 'bot', False):
                     user = msg.sender
+                    
+                    # Check if user is online or recently online
+                    status = getattr(user, 'status', None)
+                    is_active = isinstance(status, (UserStatusOnline, UserStatusRecently))
+                    
+                    if not is_active:
+                        continue
+                        
                     if user.id not in active_users:
                         active_users[user.id] = {
                             "id": user.id,

@@ -82,17 +82,10 @@ class OutboundCampaignService:
 
     def _build_message(self, lead: dict[str, Any]) -> str:
         name = lead.get("name", "there")
-        context = lead.get("context", "")
-        base = (
-            f"Hey {name}, I’ve been looking at how people learn new skills and I built something around that. "
-            f"{self.knowledge.get_summary()} "
-            f"That is why I built Mentrast around helping people turn a goal into a clear path, especially when they are trying to learn something like {context}. "
-            f"If you want, I can share a quick idea of how it works."
-        )
-        valid, reason = self.guardrails.validate_post(base)
-        if not valid:
-            return f"{base} {reason}"
-        return base
+        if lead.get("is_new", True):
+            return f"Hey {name}, quick question - are you currently learning any new tech skills?"
+        else:
+            return f"Hey {name}, just bubbling this up! Let me know if you're still looking into learning new skills."
 
     def build_social_post(self, topic: str, audience: str) -> str:
         post = self.guardrails.build_domain_post(topic=topic, audience=audience)
