@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mentrast Bot Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-glow"></div>
+    
+    <div class="container">
+        <header>
+            <h1>Mentrast Growth Intelligence</h1>
+            <div class="status-badge" id="global-status">
+                <span class="dot"></span>
+                <span class="text">Checking status...</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Auth Section -->
+            <section class="card" id="auth-section">
+                <h2>Telegram Connection</h2>
+                <p>Link the bot to your Telegram account so it can act on your behalf.</p>
+                
+                <div class="step-container" id="step-1">
+                    <button class="btn primary" id="btn-send-code" onclick="requestLoginCode()">
+                        Send Login Code to Phone
+                    </button>
+                    <div id="auth-message-1" class="message"></div>
+                </div>
+
+                <div class="step-container hidden" id="step-2">
+                    <div class="input-group">
+                        <input type="text" id="login-code" placeholder="Enter 5-digit code" autocomplete="off">
+                        <button class="btn primary" id="btn-login" onclick="submitLoginCode()">
+                            Login
+                        </button>
+                    </div>
+                    <div id="auth-message-2" class="message"></div>
+                </div>
+            </section>
+
+            <!-- Automation Controls Section -->
+            <section class="card disabled-section" id="bot-section">
+                <h2>Bot Controls</h2>
+                <p>Manage the bot's growth operations and network building.</p>
+
+                <div class="action-grid">
+                    <div class="action-card">
+                        <h3>Scout & Join</h3>
+                        <p>Search for new tech, startup, and developer groups and automatically join them.</p>
+                        <button class="btn secondary" onclick="searchGroups()">Find Groups</button>
+                    </div>
+
+                    <div class="action-card">
+                        <h3>Extract Leads</h3>
+                        <p>Extract active users from groups you've recently joined.</p>
+                        <button class="btn secondary" onclick="alert('Feature coming soon! (Needs chat selection)')">Extract Users</button>
+                    </div>
+
+                    <div class="action-card highlight">
+                        <h3>Daily Cycle</h3>
+                        <p>Kick off the fully autonomous outreach and relationship building engine.</p>
+                        <button class="btn primary glow" onclick="startAutomation()">Start Engine</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Logs Section -->
+            <section class="card logs-card">
+                <h2>Live Feed</h2>
+                <div class="logs-container" id="logs">
+                    <div class="log-entry">Waiting for commands...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

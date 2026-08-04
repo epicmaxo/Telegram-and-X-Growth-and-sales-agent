@@ -1,0 +1,150 @@
+const API_BASE = window.location.origin;
+
+function addLog(message, type = 'info') {
+    const logs = document.getElementById('logs');
+    const time = new Date().toLocaleTimeString();
+    
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${message}</span>`;
+    
+    logs.appendChild(entry);
+    logs.scrollTop = logs.scrollHeight;
+}
+
+function updateStatus(dotClass, text) {
+    const dot = document.querySelector('#global-status .dot');
+    const textSpan = document.querySelector('#global-status .text');
+    
+    dot.className = `dot ${dotClass}`;
+    textSpan.innerText = text;
+}
+
+function unlockBotControls() {
+    document.getElementById('bot-section').classList.remove('disabled-section');
+    document.getElementById('auth-section').innerHTML = `
+        <div class="message success" style="margin-top:0">
+            ✅ Successfully connected to Telegram. Bot is ready.
+        </div>
+    `;
+    updateStatus('active', 'Online & Ready');
+}
+
+async function checkStatus() {
+    try {
+        const res = await fetch(`${API_BASE}/telegram/status`);
+        const data = await res.json();
+        
+        if (data.real_client && data.real_client.configured) {
+            // Need to check if actually logged in, but we assume configured means ready for now
+            // Or we check auth manually
+            updateStatus('active', 'API Reached');
+            addLog('Connected to backend API.', 'success');
+        }
+    } catch (e) {
+        updateStatus('error', 'API Offline');
+        addLog('Could not connect to backend API.', 'error');
+    }
+}
+
+async function requestLoginCode() {
+    const btn = document.getElementById('btn-send-code');
+    const msg = document.getElementById('auth-message-1');
+    
+    btn.disabled = true;
+    btn.innerText = 'Sending...';
+    msg.className = 'message';
+    msg.innerText = '';
+    
+    try {
+        const res = await fetch(`${API_BASE}/telegram/auth/send-code`, { method: 'POST' });
+        const data = await res.json();
+        
+        if (data.status === 'code_sent') {
+            msg.className = 'message success';
+            msg.innerText = 'Code sent to your phone!';
+            addLog('Telegram login code requested.', 'info');
+            
+            setTimeout(() => {
+                document.getElementById('step-1').classList.add('hidden');
+                document.getElementById('step-2').classList.remove('hidden');
+            }, 1000);
+        } else {
+            msg.className = 'message error';
+            msg.innerText = data.message || 'Failed to send code.';
+            btn.disabled = false;
+            btn.innerText = 'Try Again';
+        }
+    } catch (e) {
+        msg.className = 'message error';
+        msg.innerText = 'Network error.';
+        btn.disabled = false;
+        btn.innerText = 'Try Again';
+    }
+}
+
+async function submitLoginCode() {
+    const code = document.getElementById('login-code').value;
+    const btn = document.getElementById('btn-login');
+    const msg = document.getElementById('auth-message-2');
+    
+    if (!code) return;
+    
+    btn.disabled = true;
+    btn.innerText = 'Logging in...';
+    
+    try {
+        const res = await fetch(`${API_BASE}/telegram/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        
+        if (data.status === 'connected') {
+            addLog('Successfully logged into Telegram account!', 'success');
+            unlockBotControls();
+        } else {
+            msg.className = 'message error';
+            msg.innerText = data.message || 'Invalid code.';
+            btn.disabled = false;
+            btn.innerText = 'Login';
+        }
+    } catch (e) {
+        msg.className = 'message error';
+        msg.innerText = 'Network error.';
+        btn.disabled = false;
+        btn.innerText = 'Login';
+    }
+}
+
+async function searchGroups() {
+    addLog('Searching for tech groups and attempting to join...', 'info');
+    try {
+        const res = await fetch(`${API_BASE}/telegram/groups/search`);
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+            const count = data.joined_groups ? data.joined_groups.length : 0;
+            addLog(`Successfully joined ${count} new tech groups.`, 'success');
+        } else {
+            addLog(`Error searching groups: ${data.message}`, 'error');
+        }
+    } catch (e) {
+        addLog('Failed to trigger group search.', 'error');
+    }
+}
+
+async function startAutomation() {
+    addLog('Starting the daily automation cycle...', 'info');
+    try {
+        const res = await fetch(`${API_BASE}/automation/start`, { method: 'POST' });
+        const data = await res.json();
+        addLog(`Engine started. Queued ${data.queued_messages ? data.queued_messages.length : 0} actions.`, 'success');
+    } catch (e) {
+        addLog('Failed to start engine.', 'error');
+    }
+}
+
+// Initial status check
+checkStatus();

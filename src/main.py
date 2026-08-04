@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from src.agent.conversation.service import ConversationService
 from src.agent.evaluation.service import EvaluationService
@@ -18,6 +20,12 @@ from src.telegram.handlers.auth import router as auth_router
 from src.telegram.handlers.webhook import router as telegram_router
 
 app = FastAPI(title="Mentrast Growth Intelligence")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+def serve_dashboard():
+    return FileResponse("static/index.html")
+
 app.include_router(telegram_router)
 app.include_router(auth_router)
 
