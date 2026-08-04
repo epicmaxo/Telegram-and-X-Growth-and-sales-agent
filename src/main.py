@@ -185,6 +185,18 @@ async def get_chat_history(chat_id: str, limit: int = 20) -> dict[str, object]:
     return await real_telegram_client.get_chat_history(chat_id=chat_id, limit=limit)
 
 
+@app.get("/telegram/groups/search")
+async def search_and_join_groups(query: str = "tech startup programming developer software", limit: int = 5) -> dict[str, object]:
+    """Search for public groups/channels related to tech and automatically join them."""
+    return await real_telegram_client.search_and_join_groups(query=query, limit=limit)
+
+
+@app.get("/telegram/groups/{chat_id}/active-users")
+async def get_active_users(chat_id: str, limit: int = 100) -> dict[str, object]:
+    """Extract users who have sent messages recently in a group."""
+    return await real_telegram_client.extract_active_users(chat_id=chat_id, limit=limit)
+
+
 @app.get("/social/x/status")
 def x_status() -> dict[str, object]:
     return x_client.get_status()
