@@ -145,8 +145,9 @@ class RealTelegramClient:
             return connect_status
             
         try:
+            target_chat = int(chat_id) if chat_id.lstrip('-').isdigit() else chat_id
             # Get recent messages to find active users
-            messages = await self.client.get_messages(chat_id, limit=limit)
+            messages = await self.client.get_messages(target_chat, limit=limit)
             active_users = {}
             
             for msg in messages:
@@ -175,7 +176,8 @@ class RealTelegramClient:
         if not self.client:
             return {"status": "error", "message": "Telegram client not initialized"}
 
-        result = await self.client.send_message(chat_id, message)
+        target_chat = int(chat_id) if chat_id.lstrip('-').isdigit() else chat_id
+        result = await self.client.send_message(target_chat, message)
         return {"status": "sent", "chat_id": str(chat_id), "result": str(result)}
 
     async def get_chat_history(self, chat_id: str, limit: int = 20) -> dict[str, Any]:
@@ -186,7 +188,8 @@ class RealTelegramClient:
         if not self.client:
             return {"status": "error", "message": "Telegram client not initialized"}
 
-        messages = await self.client.get_messages(chat_id, limit=limit)
+        target_chat = int(chat_id) if chat_id.lstrip('-').isdigit() else chat_id
+        messages = await self.client.get_messages(target_chat, limit=limit)
         return {
             "status": "ok",
             "chat_id": chat_id,
