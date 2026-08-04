@@ -126,7 +126,13 @@ async function searchGroups() {
         
         if (data.status === 'success') {
             const count = data.joined_groups ? data.joined_groups.length : 0;
-            addLog(`Successfully joined ${count} new tech groups.`, 'success');
+            addLog(`Found ${data.found_chats_count || 0} chats. Successfully joined ${count} new tech groups.`, 'success');
+            
+            if (data.failed_joins && data.failed_joins.length > 0) {
+                data.failed_joins.forEach(err => {
+                    addLog(`Failed to join ${err.title}: ${err.error}`, 'error');
+                });
+            }
         } else {
             addLog(`Error searching groups: ${data.message}`, 'error');
         }

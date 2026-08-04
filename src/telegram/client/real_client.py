@@ -99,16 +99,26 @@ class RealTelegramClient:
             # Search for groups
             result = await self.client(SearchRequest(q=query, limit=limit))
             joined = []
+            failed = []
+            found = []
             
             for chat in result.chats:
-                if getattr(chat, 'megagroup', False) or getattr(chat, 'broadcast', False):
+                found.append({"id": getattr(chat, 'id', None), "title": getattr(chat, 'title', None), "type": type(chat).__name__})
+                if getattr(chat, 'megagroup', False) or getattr(chat, 'broadcast', False) or type(chat).__name__ == "Channel":
                     try:
                         await self.client(JoinChannelRequest(chat))
                         joined.append({"id": chat.id, "title": chat.title, "username": getattr(chat, 'username', None)})
                     except Exception as e:
-                        print(f"Failed to join {chat.title}: {e}")
+                        failed.append({"title": getattr(chat, 'title', 'Unknown'), "error": str(e)})
                         
-            return {"status": "success", "query": query, "joined_groups": joined}
+            return {
+                "status": "success", 
+                "query": query, 
+                "found_chats_count": len(result.chats),
+                "found_chats_debug": found,
+                "joined_groups": joined,
+                "failed_joins": failed
+            }
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
