@@ -19,7 +19,7 @@ window.fetch = async function() {
 };
 
 async function submitAdminPassword() {
-    const password = document.getElementById('admin-password').value;
+    const password = document.getElementById('admin-password').value.trim();
     localStorage.setItem('admin_password', password);
     
     const btn = document.getElementById('btn-admin-login');
@@ -51,6 +51,13 @@ if (!localStorage.getItem('admin_password')) {
 } else {
     document.getElementById('login-overlay').style.display = 'none';
 }
+
+// Add event listener for enter key
+document.getElementById('admin-password').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        submitAdminPassword();
+    }
+});
 
 
 function addLog(message, type = 'info') {

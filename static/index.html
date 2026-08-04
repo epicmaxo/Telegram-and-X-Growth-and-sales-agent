@@ -21,15 +21,16 @@
 
         <main>
             <!-- Login Overlay -->
-            <div id="login-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 9999;">
-                <div class="card" style="width: 300px; text-align: center;">
-                    <h2>Authentication Required</h2>
-                    <p>Please enter your password to access the dashboard.</p>
-                    <div class="input-group" style="margin-top: 20px;">
-                        <input type="password" id="admin-password" placeholder="Password" autocomplete="off" style="margin-bottom: 10px;">
-                        <button class="btn primary glow" id="btn-admin-login" onclick="submitAdminPassword()">Unlock</button>
+            <div id="login-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 9999; backdrop-filter: blur(10px);">
+                <div class="background-glow" style="top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.5;"></div>
+                <div class="card" style="width: 380px; text-align: center; position: relative; z-index: 1; padding: 40px; border: 1px solid rgba(79, 70, 229, 0.3); box-shadow: 0 0 30px rgba(0,0,0,0.5);">
+                    <h2 style="font-size: 24px; margin-bottom: 12px; font-weight: 700; background: linear-gradient(to right, #fff, #9CA3AF); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Access Required</h2>
+                    <p style="margin-bottom: 30px; font-size: 15px;">Please enter your admin password to securely access the growth engine.</p>
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <input type="password" id="admin-password" placeholder="Password" autocomplete="off" style="width: 100%; text-align: center; padding: 14px; font-size: 16px;">
+                        <button class="btn primary glow" id="btn-admin-login" onclick="submitAdminPassword()" style="width: 100%; padding: 14px; font-size: 16px;">Unlock Engine</button>
                     </div>
-                    <div id="admin-login-message" class="message" style="margin-top: 10px;"></div>
+                    <div id="admin-login-message" class="message" style="margin-top: 16px;"></div>
                 </div>
             </div>
 
