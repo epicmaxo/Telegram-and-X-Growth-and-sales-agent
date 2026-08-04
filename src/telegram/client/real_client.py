@@ -107,7 +107,7 @@ class RealTelegramClient:
                 
                 for chat in result.chats:
                     found.append({"id": getattr(chat, 'id', None), "title": getattr(chat, 'title', None), "type": type(chat).__name__})
-                    if getattr(chat, 'megagroup', False) or getattr(chat, 'broadcast', False) or type(chat).__name__ == "Channel":
+                    if (getattr(chat, 'megagroup', False) or type(chat).__name__ == "Chat") and not getattr(chat, 'broadcast', False):
                         try:
                             await self.client(JoinChannelRequest(chat))
                             joined.append({"id": chat.id, "title": chat.title, "username": getattr(chat, 'username', None)})
