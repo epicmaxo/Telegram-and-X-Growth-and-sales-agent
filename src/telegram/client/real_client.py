@@ -23,7 +23,7 @@ class RealTelegramClient:
         return {
             "configured": self.is_configured(),
             "mode": "user-account",
-            "session_path": self.session_path,
+            "session_string_present": bool(self.session_string),
             "api_id_present": bool(self.api_id),
             "api_hash_present": bool(self.api_hash),
             "phone_present": bool(self.phone),
