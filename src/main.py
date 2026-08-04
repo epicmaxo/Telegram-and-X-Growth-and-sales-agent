@@ -205,6 +205,12 @@ async def get_chat_history(chat_id: str, limit: int = 20) -> dict[str, object]:
     return await real_telegram_client.get_chat_history(chat_id=chat_id, limit=limit)
 
 
+@api_router.get("/telegram/groups")
+async def get_joined_groups(limit: int = 50) -> dict[str, object]:
+    """Get a list of currently joined groups."""
+    return await real_telegram_client.get_joined_groups(limit=limit)
+
+
 @api_router.get("/telegram/groups/search")
 async def search_and_join_groups(query: str = "tech startup programming developer software", limit: int = 5) -> dict[str, object]:
     """Search for public groups/channels related to tech and automatically join them."""

@@ -178,3 +178,22 @@ class RealTelegramClient:
             "chat_id": chat_id,
             "messages": [{"id": msg.id, "text": msg.text, "date": str(msg.date)} for msg in messages],
         }
+
+    async def get_joined_groups(self, limit: int = 50) -> dict[str, Any]:
+        connect_status = await self.connect()
+        if connect_status.get("status") != "connected":
+            return connect_status
+            
+        try:
+            groups = []
+            async for dialog in self.client.iter_dialogs(limit=limit):
+                entity = dialog.entity
+                if dialog.is_group or getattr(entity, 'megagroup', False):
+                    groups.append({
+                        "id": str(dialog.id),
+                        "title": dialog.title
+                    })
+            return {"status": "success", "groups": groups}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+

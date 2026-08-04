@@ -220,5 +220,125 @@ async function startAutomation() {
     }
 }
 
+// --- Extract Leads Workflow ---
+let currentExtractedUsers = [];
+
+function openExtractModal() {
+    document.getElementById('extract-modal').style.display = 'flex';
+    document.getElementById('extract-step-1').classList.remove('hidden');
+    document.getElementById('extract-step-2').classList.add('hidden');
+    document.getElementById('extract-step-3').classList.add('hidden');
+    fetchGroups();
+}
+
+function closeExtractModal() {
+    document.getElementById('extract-modal').style.display = 'none';
+}
+
+async function fetchGroups() {
+    const list = document.getElementById('groups-list');
+    list.innerHTML = '<div class="message info">Loading groups...</div>';
+    
+    try {
+        const res = await fetch(`${API_BASE}/telegram/groups`);
+        const data = await res.json();
+        
+        if (data.status === 'success' && data.groups) {
+            if (data.groups.length === 0) {
+                list.innerHTML = '<div class="message info">No groups found. Try finding groups first.</div>';
+                return;
+            }
+            
+            list.innerHTML = '';
+            data.groups.forEach(g => {
+                const btn = document.createElement('button');
+                btn.className = 'btn secondary';
+                btn.style.textAlign = 'left';
+                btn.innerText = g.title;
+                btn.onclick = () => extractUsers(g.id, g.title);
+                list.appendChild(btn);
+            });
+        } else {
+            list.innerHTML = `<div class="message error">Error: ${data.message || 'Failed to load groups'}</div>`;
+        }
+    } catch (e) {
+        list.innerHTML = '<div class="message error">Network error while loading groups.</div>';
+    }
+}
+
+async function extractUsers(chatId, title) {
+    document.getElementById('extract-step-1').classList.add('hidden');
+    document.getElementById('extract-step-2').classList.remove('hidden');
+    document.getElementById('extract-status').innerText = `from ${title}`;
+    addLog(`Extracting users from group: ${title}...`, 'info');
+    
+    try {
+        const res = await fetch(`${API_BASE}/telegram/groups/${chatId}/active-users`);
+        const data = await res.json();
+        
+        if (data.status === 'success' && data.active_users) {
+            currentExtractedUsers = data.active_users;
+            document.getElementById('extract-step-2').classList.add('hidden');
+            document.getElementById('extract-step-3').classList.remove('hidden');
+            document.getElementById('extracted-count').innerText = currentExtractedUsers.length;
+            addLog(`Successfully extracted ${currentExtractedUsers.length} users.`, 'success');
+        } else {
+            closeExtractModal();
+            addLog(`Error extracting users: ${data.message}`, 'error');
+        }
+    } catch (e) {
+        closeExtractModal();
+        addLog(`Network error while extracting users.`, 'error');
+    }
+}
+
+async function startCampaign() {
+    if (currentExtractedUsers.length === 0) return;
+    
+    const btn = document.getElementById('btn-start-campaign');
+    const msg = document.getElementById('campaign-message');
+    btn.disabled = true;
+    btn.innerText = 'Starting...';
+    msg.className = 'message';
+    msg.innerText = '';
+    
+    // Format leads for outreach API
+    const leads = currentExtractedUsers.map(u => ({
+        chat_id: u.username ? `@${u.username}` : u.id.toString(),
+        name: u.first_name || 'there',
+        context: 'the group',
+        is_new: true
+    }));
+    
+    try {
+        addLog(`Sending ${leads.length} leads to the outreach engine...`, 'info');
+        const res = await fetch(`${API_BASE}/outreach/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(leads)
+        });
+        const data = await res.json();
+        
+        msg.className = 'message success';
+        msg.innerText = `Campaign started! ${data.queued_messages ? data.queued_messages.length : 0} messages queued.`;
+        addLog(`Campaign processed. Queued: ${data.queued_messages ? data.queued_messages.length : 0}, Skipped: ${data.skipped_count || 0}.`, 'success');
+        
+        setTimeout(() => {
+            closeExtractModal();
+            btn.disabled = false;
+            btn.innerText = 'Start Campaign';
+            msg.innerText = '';
+        }, 2000);
+        
+    } catch (e) {
+        msg.className = 'message error';
+        msg.innerText = 'Failed to start campaign.';
+        btn.disabled = false;
+        btn.innerText = 'Start Campaign';
+        addLog(`Network error starting campaign.`, 'error');
+    }
+}
+
 // Initial status check
 checkStatus();
+
