@@ -1,0 +1,1 @@
+Review the context and identify whether it is a relevant opportunity for Mentrast. Return a structured view with community context, the person's likely goal, evidence, potential problem, Mentrast relevance, confidence, and recommended action.

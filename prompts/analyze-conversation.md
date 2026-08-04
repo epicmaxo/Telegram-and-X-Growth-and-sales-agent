@@ -1,0 +1,1 @@
+Analyze the incoming message for the person's goal, current learning method, stated problem, known facts, unknowns, friction, Mentrast fit, confidence, conversation stage, recommended action, and reason. Distinguish facts from assumptions and ask for clarification when needed.

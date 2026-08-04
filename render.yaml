@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: web
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn src.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        value: postgres://user:pass@localhost:5432/mentrast
+      - key: TELEGRAM_API_ID
+        fromDatabase: false
+      - key: TELEGRAM_API_HASH
+        fromDatabase: false
+      - key: TELEGRAM_PHONE
+        fromDatabase: false
+      - key: TELEGRAM_SESSION_PATH
+        value: /tmp/telegram_session
