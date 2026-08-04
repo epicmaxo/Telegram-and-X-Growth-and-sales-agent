@@ -83,7 +83,18 @@ class RealTelegramClient:
                 
                 relationship_manager.record_interaction(user_id, channel="telegram", outcome="active", message=event.raw_text)
                 analysis = conversation_service.analyze_message(event.raw_text)
-                reply = conversation_service.draft_response(event.raw_text, stage=analysis.conversation_stage)
+                
+                try:
+                    recent_msgs = await self.client.get_messages(user_id, limit=6)
+                    history = []
+                    for msg in reversed(recent_msgs):
+                        if msg.text:
+                            role = "assistant" if msg.out else "user"
+                            history.append({"role": role, "content": msg.text})
+                except Exception:
+                    history = None
+
+                reply = conversation_service.draft_response(event.raw_text, stage=analysis.conversation_stage, history=history)
                 
                 if reply:
                     await self.client.send_message(user_id, reply)

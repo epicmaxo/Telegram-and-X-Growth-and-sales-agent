@@ -54,32 +54,41 @@ class ConversationService:
             recommended_action=action,
         )
 
-    def draft_response(self, message: str, stage: str) -> str:
-        lowered = message.lower()
+    def draft_response(self, message: str, stage: str = "", history: list[dict[str, str]] = None) -> str:
+        import os
+        from openai import OpenAI
+        
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return "yeah that makes sense. what are you currently working on?"
 
-        if "youtube" in lowered:
-            if "don't know what to learn next" in lowered or "don't know where to start" in lowered or "lost" in lowered:
-                return (
-                    "That makes sense, especially with YouTube. I know it can feel noisy and confusing. "
-                    "Mentrast helps turn that into a clearer path, so you can focus on what to learn next."
-                )
-            return (
-                "That is a common way to start. I think the hard part is usually finding direction, not just more content. "
-                "Mentrast is built to make that part feel easier."
-            )
-
-        if stage == "PROBLEM_DISCOVERY":
-            if "overwhelmed" in lowered or "confusing" in lowered:
-                return (
-                    "That sounds really overwhelming. I know it can feel like too much advice and not enough direction, especially when you are overwhelmed. "
-                    "Mentrast helps turn a goal into a simple path forward."
-                )
-            return (
-                "That makes sense. A lot of people want a clearer path, not just more ideas. "
-                "Mentrast is meant to help with that."
-            )
-
-        return (
-            "Thanks for sharing that. I think the real issue is usually getting from interest to a clear next step. "
-            "Mentrast is built to help with that in a simple, practical way."
+        client = OpenAI(api_key=api_key)
+        
+        system_prompt = (
+            "You are a human acting as a peer developer/learner in a casual Telegram chat. "
+            "Your persona is casual, curious, and slightly inquisitive. You use lowercase often and very short sentences. "
+            "You are trying to figure out what the user is working on, what their goals are, and what they struggle with. "
+            "CRITICAL RULES: \n"
+            "1. NEVER pitch or mention 'Mentrast' immediately. \n"
+            "2. Keep it incredibly short (1-2 sentences max).\n"
+            "3. Always end with a natural question about THEM, their work, or their learning process.\n"
+            "4. Be human as hell, like you're texting a friend. Don't be robotic or overly helpful."
         )
+        
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        if history:
+            messages.extend(history)
+        else:
+            messages.append({"role": "user", "content": message})
+            
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                max_tokens=150,
+                temperature=0.8
+            )
+            return response.choices[0].message.content.strip()
+        except Exception:
+            return "interesting. what exactly are you trying to learn right now?"
