@@ -13,6 +13,12 @@ class RealTelegramClient:
         self.api_hash = api_hash
         self.phone = phone
         self.session_path = session_path or os.getenv("TELEGRAM_SESSION_PATH", "./sessions/telegram_account")
+        
+        # Ensure the parent directory exists to prevent SQLite OperationalError
+        parent_dir = os.path.dirname(self.session_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+            
         self.client: TelethonClient | None = None
 
     def is_configured(self) -> bool:
@@ -30,7 +36,11 @@ class RealTelegramClient:
 
     async def connect(self) -> dict[str, Any]:
         if not self.is_configured():
-            return {"status": "error", "message": "missing credentials"}
+            missing = []
+            if not self.api_id: missing.append("TELEGRAM_API_ID")
+            if not self.api_hash: missing.append("TELEGRAM_API_HASH")
+            if not self.phone: missing.append("TELEGRAM_PHONE")
+            return {"status": "error", "message": f"Missing credentials in Render: {', '.join(missing)}"}
 
         if self.client is None:
             self.client = TelethonClient(self.session_path, self.api_id, self.api_hash)
@@ -45,7 +55,11 @@ class RealTelegramClient:
 
     async def send_code_request(self) -> dict[str, Any]:
         if not self.is_configured():
-            return {"status": "error", "message": "missing credentials"}
+            missing = []
+            if not self.api_id: missing.append("TELEGRAM_API_ID")
+            if not self.api_hash: missing.append("TELEGRAM_API_HASH")
+            if not self.phone: missing.append("TELEGRAM_PHONE")
+            return {"status": "error", "message": f"Missing credentials in Render: {', '.join(missing)}"}
             
         if self.client is None:
             self.client = TelethonClient(self.session_path, self.api_id, self.api_hash)
