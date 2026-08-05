@@ -167,8 +167,9 @@ async def telegram_connect() -> dict[str, object]:
     result = await real_telegram_client.connect()
     if result.get("status") in {"connected", "ready", "sent"}:
         automation_controller.mark_channel_activity("telegram", activity="connect")
-        start_result = outreach_service.start_daily_cycle(audience="global learners")
-        result["automation"] = start_result
+        # Outreach auto-start is disabled so the bot doesn't automatically reach out yet.
+        # start_result = outreach_service.start_daily_cycle(audience="global learners")
+        # result["automation"] = start_result
     return result
 
 

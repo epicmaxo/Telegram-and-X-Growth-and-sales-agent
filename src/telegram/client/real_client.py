@@ -94,7 +94,25 @@ class RealTelegramClient:
                 except Exception:
                     history = None
 
-                reply = conversation_service.draft_response(event.raw_text, stage=analysis.conversation_stage, history=history)
+                try:
+                    from telethon.tl.functions.users import GetFullUserRequest
+                    full_user = await self.client(GetFullUserRequest(user))
+                    user_bio = getattr(full_user.full_user, 'about', '') if getattr(full_user, 'full_user', None) else ''
+                    user_research = {
+                        "first_name": getattr(user, 'first_name', ''),
+                        "last_name": getattr(user, 'last_name', ''),
+                        "username": getattr(user, 'username', ''),
+                        "bio": user_bio
+                    }
+                except Exception:
+                    user_research = None
+
+                reply = conversation_service.draft_response(
+                    event.raw_text, 
+                    stage=analysis.conversation_stage, 
+                    history=history,
+                    user_research=user_research
+                )
                 
                 if reply:
                     await self.client.send_message(user_id, reply)
