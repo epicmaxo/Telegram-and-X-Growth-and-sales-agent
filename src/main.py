@@ -282,7 +282,7 @@ async def run_outreach(leads: list[dict[str, object]], dry_run: bool = False) ->
     failed_messages = []
 
     for item in result["queued_messages"]:
-        chat_id = item.get("chat_id") or item["lead"].get("chat_id")
+        chat_id = item.get("chat_id") or item["lead"].get("chat_id") or item["lead"].get("id")
         if not chat_id:
             failed_messages.append({"item": item, "reason": "missing_chat_id"})
             continue

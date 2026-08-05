@@ -253,7 +253,7 @@ class RealTelegramClient:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    async def send_message(self, chat_id: str, message: str) -> dict[str, Any]:
+    async def send_message(self, chat_id: str | int, message: str) -> dict[str, Any]:
         connect_status = await self.connect()
         if connect_status.get("status") != "connected":
             return connect_status
@@ -261,7 +261,11 @@ class RealTelegramClient:
         if not self.client:
             return {"status": "error", "message": "Telegram client not initialized"}
 
-        target_chat = int(chat_id) if chat_id.lstrip('-').isdigit() else chat_id
+        if isinstance(chat_id, str):
+            target_chat = int(chat_id) if chat_id.lstrip('-').isdigit() else chat_id
+        else:
+            target_chat = chat_id
+            
         result = await self.client.send_message(target_chat, message)
         return {"status": "sent", "chat_id": str(chat_id), "result": str(result)}
 
