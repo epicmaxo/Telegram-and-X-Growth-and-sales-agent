@@ -183,8 +183,7 @@ class OutboundCampaignService:
 
     def run_batch(self, leads: list[dict[str, Any]], now: datetime | None = None, dry_run: bool = False) -> dict[str, Any]:
         now = now or datetime.now()
-        if not self._is_allowed_time(now):
-            return {"sent_count": 0, "queued_messages": [], "skipped_count": len(leads), "reason": "outside_allowed_window"}
+        # Time window check removed: if a user is online, they can be messaged regardless of the local server time.
 
         queued: list[dict[str, Any]] = []
         sent_count = 0
