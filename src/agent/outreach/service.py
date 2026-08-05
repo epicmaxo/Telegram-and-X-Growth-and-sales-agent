@@ -85,7 +85,42 @@ class OutboundCampaignService:
         if lead.get("is_new", True):
             return f"Hey {name}, quick question - are you currently learning any new tech skills?"
         else:
-            return f"Hey {name}, just bubbling this up! Let me know if you're still looking into learning new skills."
+            import os
+            from openai import OpenAI, AzureOpenAI
+            
+            azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
+            azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+            azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+            api_key = os.getenv("OPENAI_API_KEY")
+            
+            if azure_api_key and azure_endpoint:
+                client = AzureOpenAI(
+                    api_key=azure_api_key,
+                    azure_endpoint=azure_endpoint,
+                    api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+                )
+                model_name = azure_deployment or "gpt-4"
+            elif api_key:
+                client = OpenAI(api_key=api_key)
+                model_name = "gpt-4o-mini"
+            else:
+                return f"hey {name}, just bubbling this up. you still looking into learning new skills?"
+                
+            prompt = (
+                f"You are following up with a Telegram user named {name} who hasn't replied to your previous message. "
+                "Write a very short (1 sentence max), extremely casual follow-up message trying to bump the conversation. "
+                "Do NOT be salesy or pushy. Use lowercase often. Act like a peer who just remembered to check in."
+            )
+            try:
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=60,
+                    temperature=0.8
+                )
+                return response.choices[0].message.content.strip()
+            except Exception:
+                return f"hey {name}, just bubbling this up. you still looking into learning new skills?"
 
     def build_social_post(self, topic: str, audience: str) -> str:
         post = self.guardrails.build_domain_post(topic=topic, audience=audience)
