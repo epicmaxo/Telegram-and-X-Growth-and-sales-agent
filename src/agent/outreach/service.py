@@ -83,7 +83,7 @@ class OutboundCampaignService:
     def _build_message(self, lead: dict[str, Any]) -> str:
         name = lead.get("name", "there")
         if lead.get("is_new", True):
-            return f"Hey {name}, quick question - are you currently learning any new tech skills?"
+            return f"Hey {name}, quick question - are you currently learning any new skills or working on anything interesting?"
         else:
             import os
             from openai import OpenAI, AzureOpenAI

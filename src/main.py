@@ -290,6 +290,7 @@ async def run_outreach(leads: list[dict[str, object]], dry_run: bool = False) ->
         send_result = await real_telegram_client.send_message(chat_id=chat_id, message=item["message"])
         if send_result.get("status") == "sent":
             sent_messages.append(send_result)
+            relationship_manager.record_interaction(str(chat_id), channel="telegram", outcome="active", message=item["message"])
         else:
             failed_messages.append({"item": item, "result": send_result})
 
