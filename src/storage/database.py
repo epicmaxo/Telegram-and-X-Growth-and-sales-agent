@@ -36,7 +36,13 @@ class ConversationRecord(Base):
 class DatabaseService:
     def __init__(self, database_url: str | None = None) -> None:
         self.database_url = database_url or os.getenv("DATABASE_URL", "sqlite:///./mentrast.db")
-        self.engine = create_engine(self.database_url)
+        
+        # Supabase/SQLAlchemy compatibility: Use psycopg3 driver
+        if self.database_url.startswith("postgresql://"):
+            self.database_url = self.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+            
+        # Supabase uses a connection pooler, so pool_pre_ping is critical to avoid dropouts
+        self.engine = create_engine(self.database_url, pool_pre_ping=True)
         Base.metadata.create_all(self.engine)
         self.SessionLocal = sessionmaker(bind=self.engine)
 
