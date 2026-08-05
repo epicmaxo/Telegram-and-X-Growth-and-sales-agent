@@ -219,7 +219,8 @@ class OutboundCampaignService:
                     continue
                 follow_up_count += 1
 
-            if not dry_run and not lead.get("chat_id"):
+            lead_id = lead.get("chat_id") or lead.get("id")
+            if not dry_run and not lead_id:
                 skipped += 1
                 continue
 
@@ -229,7 +230,7 @@ class OutboundCampaignService:
                 "message": self._build_message(lead),
                 "is_new": is_new,
                 "conversation_id": f"outreach-{name}",
-                "chat_id": lead.get("chat_id"),
+                "chat_id": lead_id,
             })
             sent_count += 1
 
